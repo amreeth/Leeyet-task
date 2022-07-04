@@ -1,9 +1,8 @@
 import asyncHandler from "express-async-handler";
 import Product from "../Models/productModel.js";
-import cloudinary from 'cloudinary'
+import cloudinary from "cloudinary";
 
 let shippingCharge = 100;
-
 
 //@desc product add
 //@route POST /api/product/add
@@ -18,7 +17,6 @@ const addProduct = asyncHandler(async (req, res) => {
     //after including tax
     MRP = MRP + shippingCharge;
 
-
     let images = [];
 
     if (typeof req.body.images === "string") {
@@ -26,23 +24,19 @@ const addProduct = asyncHandler(async (req, res) => {
     } else {
       images = req.body.images;
     }
-  
+
     const imagesLinks = [];
-  
+
     for (let i = 0; i < images.length; i++) {
       const result = await cloudinary.v2.uploader.upload(images[i], {
         folder: "product",
       });
-  
+
       imagesLinks.push({
         public_id: result.public_id,
         url: result.secure_url,
       });
     }
-
-
-    
-  
 
     const product = await Product.create({
       name,
@@ -50,6 +44,7 @@ const addProduct = asyncHandler(async (req, res) => {
       price,
       discount,
       MRP,
+      images: imagesLinks,
     });
 
     if (product) {
@@ -69,8 +64,6 @@ const addProduct = asyncHandler(async (req, res) => {
   }
 });
 
-
-
 //@desc product update
 //@route PUT /api/product/:id
 
@@ -78,7 +71,7 @@ const updateProduct = asyncHandler(async (req, res) => {
   try {
     const product = await Product.findById(req.params.id);
 
-    let { name, description, price, discount } = req.body;
+    let { name, description, price, discount, images } = req.body;
 
     if (product && (name || description || price || discount)) {
       product.name = name || product.name;
@@ -104,6 +97,26 @@ const updateProduct = asyncHandler(async (req, res) => {
         MRP = MRP + (MRP * 18) / 100;
         MRP = MRP + shippingCharge;
         product.MRP = MRP;
+      }
+
+      if (images) {
+        let image= [];
+        if (typeof req.body.images === "string") {
+          image.push(req.body.images);
+        } else {
+          image = req.body.images;
+        }
+        const imagesLinks = [];
+        for (let i = 0; i < image.length; i++) {
+          const result = await cloudinary.v2.uploader.upload(image[i], {
+            folder: "product",
+          });
+
+          imagesLinks.push({
+            public_id: result.public_id,
+            url: result.secure_url,
+          });
+        }
       }
 
       await product.save();
